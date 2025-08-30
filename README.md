@@ -50,14 +50,14 @@ Before getting started, make sure you have a proper Zephyr development environme
 ### Initialization
 
 The first step is to create a workspace folder (e.g. ``my-zephyr-workspace``) where
-the ``zephyr-temp-udp-app-repo`` and all Zephyr modules will be cloned. Run the following
+the ``zephyr-sht31-sensor`` and all Zephyr modules will be cloned. Run the following
 commands:
 
 ```shell
 cd ~
 mkdir my-zephyr-workspace
 cd my-zephyr-workspace
-git clone https://github.com/your-username/zephyr-temp-udp-app-repo my-manifest-repo
+git clone https://github.com/Basty85/zephyr-sht31-sensor
 
 python3 -m venv .venv
 source .venv/bin/activate
@@ -115,4 +115,4 @@ Expected output:
 - Ensure I2C pull-up resistors are enabled in device tree
 
 ### Build Errors
-- Make sure all dependencies are installed:
+- Make sure all dependencies are installed
