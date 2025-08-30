@@ -41,15 +41,5 @@ int main(void) {
     // Keep main thread alive forever - all work is done via timer callbacks
     k_sleep(K_FOREVER);
 
-    // legacy solution busy wait
-    /*
-    while (true) {
-        if (my_sensor.fetch()) {
-            LOG_INF("Temp: %.2f C, Hum: %.2f %%", my_sensor.getTemperature(), my_sensor.getHumidity());
-        }
-        k_sleep(K_SECONDS(2));
-    }
-    */
-
     return 0;
 }
