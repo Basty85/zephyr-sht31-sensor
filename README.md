@@ -1,71 +1,71 @@
-# Zephyr Example Application
+# Zephyr Temperature (SHT31) & UDP Application for Nucleo H755ZI-Q
 
-<a href="https://github.com/zephyrproject-rtos/example-application/actions/workflows/build.yml?query=branch%3Amain">
-  <img src="https://github.com/zephyrproject-rtos/example-application/actions/workflows/build.yml/badge.svg?event=push">
-</a>
-<a href="https://github.com/zephyrproject-rtos/example-application/actions/workflows/docs.yml?query=branch%3Amain">
-  <img src="https://github.com/zephyrproject-rtos/example-application/actions/workflows/docs.yml/badge.svg?event=push">
-</a>
-<a href="https://zephyrproject-rtos.github.io/example-application">
-  <img alt="Documentation" src="https://img.shields.io/badge/documentation-3D578C?logo=sphinx&logoColor=white">
-</a>
-<a href="https://zephyrproject-rtos.github.io/example-application/doxygen">
-  <img alt="API Documentation" src="https://img.shields.io/badge/API-documentation-3D578C?logo=c&logoColor=white">
-</a>
+This repository contains a Zephyr example application that reads temperature and humidity data from an SHT31 sensor and transmits it via UDP over Ethernet. The main purpose of this repository is to serve as a reference on how to structure Zephyr-based applications with sensor integration and network communication.
 
-This repository contains a Zephyr example application. The main purpose of this
-repository is to serve as a reference on how to structure Zephyr-based
-applications. Some of the features demonstrated in this example are:
+## Features
 
-- Basic [Zephyr application][app_dev] skeleton
-- [Zephyr workspace applications][workspace_app]
-- [Zephyr modules][modules]
-- [West T2 topology][west_t2]
-- [Custom boards][board_porting]
-- Custom [devicetree bindings][bindings]
-- Out-of-tree [drivers][drivers]
-- Out-of-tree libraries
-- Example CI configuration (using GitHub Actions)
-- Custom [west extension][west_ext]
-- Custom [Zephyr runner][runner_ext]
-- Doxygen and Sphinx documentation boilerplate
+- **SHT31 Temperature & Humidity Sensor** support via I2C
+- **UDP networking** for data transmission over Ethernet
+- **Timer-based sensor readings** with configurable intervals
+- **Work queue implementation** for non-blocking sensor operations
+- **Structured Zephyr application** with proper device tree overlays
 
-This repository is versioned together with the [Zephyr main tree][zephyr]. This
-means that every time that Zephyr is tagged, this repository is tagged as well
-with the same version number, and the [manifest](west.yml) entry for `zephyr`
-will point to the corresponding Zephyr tag. For example, the `example-application`
-v2.6.0 will point to Zephyr v2.6.0. Note that the `main` branch always
-points to the development branch of Zephyr, also `main`.
+## Hardware Requirements
 
-[app_dev]: https://docs.zephyrproject.org/latest/develop/application/index.html
-[workspace_app]: https://docs.zephyrproject.org/latest/develop/application/index.html#zephyr-workspace-app
-[modules]: https://docs.zephyrproject.org/latest/develop/modules.html
-[west_t2]: https://docs.zephyrproject.org/latest/develop/west/workspaces.html#west-t2
-[board_porting]: https://docs.zephyrproject.org/latest/guides/porting/board_porting.html
-[bindings]: https://docs.zephyrproject.org/latest/guides/dts/bindings.html
-[drivers]: https://docs.zephyrproject.org/latest/reference/drivers/index.html
-[zephyr]: https://github.com/zephyrproject-rtos/zephyr
-[west_ext]: https://docs.zephyrproject.org/latest/develop/west/extensions.html
-[runner_ext]: https://docs.zephyrproject.org/latest/develop/modules.html#external-runners
+- **STM32 Nucleo-H755ZI-Q** development board
+- **SHT31 Temperature & Humidity Sensor**
+- **Ethernet connection** for UDP communication
+- Jumper wires for sensor connections
+
+## SHT31 Sensor Connection
+
+Connect the SHT31 sensor to the Nucleo board using the following pin mapping:
+
+| SHT31 Pin | Nucleo Pin | Description |
+|-----------|------------|-------------|
+| VCC       | 3.3V       | Power supply (3.3V) |
+| GND       | GND        | Ground |
+| SDA       | PB9        | I2C Data Line |
+| SCL       | PB8        | I2C Clock Line |
+
+### Wiring Diagram
+
+```
+SHT31 Sensor          Nucleo H755ZI-Q
+┌─────────────┐       ┌─────────────────┐
+│ VCC    ●────┼───────┼─● 3.3V          │
+│ GND    ●────┼───────┼─● GND           │
+│ SDA    ●────┼───────┼─● PB9 (I2C1_SDA)│
+│ SCL    ●────┼───────┼─● PB8 (I2C1_SCL)│
+└─────────────┘       └─────────────────┘
+```
+
+**Note:** The device tree overlay (`boards/nucleo_h755zi_q.overlay`) configures PB8/PB9 as I2C1 pins with proper pull-up resistors. No external pull-up resistors are required.
 
 ## Getting Started
 
-Before getting started, make sure you have a proper Zephyr development
-environment. Follow the official
+Before getting started, make sure you have a proper Zephyr development environment. Follow the official
 [Zephyr Getting Started Guide](https://docs.zephyrproject.org/latest/getting_started/index.html).
 
 ### Initialization
 
-The first step is to initialize the workspace folder (``my-workspace``) where
-the ``example-application`` and all Zephyr modules will be cloned. Run the following
-command:
+The first step is to create a workspace folder (e.g. ``my-zephyr-workspace``) where
+the ``zephyr-temp-udp-app-repo`` and all Zephyr modules will be cloned. Run the following
+commands:
 
 ```shell
-# initialize my-workspace for the example-application (main branch)
-west init -m https://github.com/zephyrproject-rtos/example-application --mr main my-workspace
-# update Zephyr modules
-cd my-workspace
+cd ~
+mkdir my-zephyr-workspace
+cd my-zephyr-workspace
+git clone https://github.com/your-username/zephyr-temp-udp-app-repo my-manifest-repo
+
+python3 -m venv .venv
+source .venv/bin/activate
+pip install west
+
+west init -l my-manifest-repo
 west update
+west packages pip --install
 ```
 
 ### Building and running
@@ -73,66 +73,46 @@ west update
 To build the application, run the following command:
 
 ```shell
-cd example-application
-west build -b $BOARD app
-```
-
-where `$BOARD` is the target board.
-
-You can use the `custom_plank` board found in this
-repository. Note that Zephyr sample boards may be used if an
-appropriate overlay is provided (see `app/boards`).
-
-A sample debug configuration is also provided. To apply it, run the following
-command:
-
-```shell
-west build -b $BOARD app -- -DEXTRA_CONF_FILE=debug.conf
+west build -b nucleo_h755zi_q/stm32h755xx/m7 my-manifest-repo/app -d build_sht31 -- -DDTC_OVERLAY_FILE="boards/nucleo_h755zi_q.overlay"
 ```
 
 Once you have built the application, run the following command to flash it:
 
 ```shell
-west flash
+west flash --runner openocd --build-dir build_sht31
 ```
 
-### Testing
+### Configuration
 
-To execute Twister integration tests, run the following command:
+The application can be configured through the following files:
+
+- **`prj.conf`** - Zephyr configuration options (I2C, networking, logging)
+- **`boards/nucleo_h755zi_q.overlay`** - Device tree overlay for I2C and sensor configuration
+- **`src/main.cpp`** - Application logic and sensor reading intervals
+
+### Monitoring Output
+
+Connect to the board via serial console to see sensor readings and debug output:
 
 ```shell
-west twister -T tests --integration
+# Find the correct serial device (usually /dev/ttyACM0 or /dev/ttyUSB0)
+minicom -D /dev/ttyACM0 -b 115200
 ```
 
-### Documentation
-
-A minimal documentation setup is provided for Doxygen and Sphinx. To build the
-documentation first change to the ``doc`` folder:
-
-```shell
-cd doc
+Expected output:
+```
+*** Booting Zephyr OS build v4.2.0 ***
+[00:00:00.021,000] <inf> main: Starting SHT3x reader...
+[00:00:01.027,000] <inf> main: Temp: 22.94 C, Hum: 50.98 %
+[00:00:03.033,000] <inf> main: Temp: 22.95 C, Hum: 50.91 %
 ```
 
-Before continuing, check if you have Doxygen installed. It is recommended to
-use the same Doxygen version used in [CI](.github/workflows/docs.yml). To
-install Sphinx, make sure you have a Python installation in place and run:
+## Troubleshooting
 
-```shell
-pip install -r requirements.txt
-```
+### SHT31 Not Detected
+- Check wiring connections (VCC, GND, SDA, SCL)
+- Verify 3.3V power supply
+- Ensure I2C pull-up resistors are enabled in device tree
 
-API documentation (Doxygen) can be built using the following command:
-
-```shell
-doxygen
-```
-
-The output will be stored in the ``_build_doxygen`` folder. Similarly, the
-Sphinx documentation (HTML) can be built using the following command:
-
-```shell
-make html
-```
-
-The output will be stored in the ``_build_sphinx`` folder. You may check for
-other output formats other than HTML by running ``make help``.
+### Build Errors
+- Make sure all dependencies are installed:

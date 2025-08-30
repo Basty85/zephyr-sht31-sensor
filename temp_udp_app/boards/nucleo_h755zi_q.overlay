@@ -1,0 +1,9 @@
+&i2c1 {
+    status = "okay"; /* I2C1 active, SDA=PB9, SCL=PB8 */
+
+    sht3xd@44 {
+        compatible = "sensirion,sht3xd";
+        reg = <0x44>; /* I2C-address of sensor */
+        alert-gpios = <&gpioa 0 GPIO_ACTIVE_HIGH>;
+    };
+};
