@@ -2,7 +2,7 @@ import socket
 import struct
 import time
 
-# UDP Server erstellen
+# Create UDP server
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('0.0.0.0', 8888))
 print("UDP Server listening on port 8888...")
