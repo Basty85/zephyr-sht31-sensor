@@ -123,13 +123,13 @@ west packages pip --install
 To build the application, run the following command:
 
 ```shell
-west build -b nucleo_h755zi_q/stm32h755xx/m7 zephyr-sht31-sensor/app -d build_sht31 -- -DDTC_OVERLAY_FILE="boards/nucleo_h755zi_q.overlay"
+west build -b nucleo_h755zi_q/stm32h755xx/m7 zephyr-sht31-sensor/temp_udp_app -d build_temp_udp_app -- -DDTC_OVERLAY_FILE="boards/nucleo_h755zi_q.overlay"
 ```
 
 Once you have built the application, run the following command to flash it:
 
 ```shell
-west flash --runner openocd --build-dir build_sht31
+west flash --runner openocd --build-dir build_temp_udp_app
 ```
 
 ### Configuration
