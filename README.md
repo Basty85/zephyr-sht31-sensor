@@ -322,7 +322,7 @@ python3 python_receiver/simple_receiver.py
 ```shell
 # Clean rebuild
 rm -rf build_sht31
-west build -b nucleo_h755zi_q/stm32h755xx/m7 zephyr-sht31-sensor/temp_udp_app -d build_sht31
+west build -b nucleo_h755zi_q/stm32h755xx/m7 zephyr-sht31-sensor/temp_udp_app -d build_temp_udp_app
 ```
 
 **Dependencies missing:**
