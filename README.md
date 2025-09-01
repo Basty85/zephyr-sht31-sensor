@@ -249,9 +249,21 @@ python3 python_receiver/simple_receiver.py
 ### 3. Timestamp Validation
 
 ```shell
+<<<<<<< HEAD
 # Check timestamp progression in logs
 # Timestamp should increase by ~1000ms each reading
 # Timestamp = system uptime in milliseconds
+=======
+# Clean rebuild
+rm -rf build_sht31
+west build -b nucleo_h755zi_q/stm32h755xx/m7 zephyr-sht31-sensor/temp_udp_app -d build_temp_udp_app
+```
+
+**Dependencies missing:**
+```shell
+# Reinstall dependencies
+west packages pip --install
+>>>>>>> 96e3b550c944876641b053e7b4e6dfbb0b029526
 ```
 
 ## 📈 Performance Metrics
