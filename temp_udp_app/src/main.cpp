@@ -3,77 +3,72 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
-#include "sht3xd_reader.h"
+#include "sensor_handler.h"
 #include "udp_client.h"
 
 LOG_MODULE_REGISTER(main);
 
 /**
- * @brief Sensor data structure for UDP transmission
- * 
- * This structure contains temperature, humidity, and timestamp data
- * that will be transmitted via UDP to the remote server.
- * The __attribute__((packed)) ensures no padding between fields.
- */
-struct SensorData {
-    float temperature;      // Temperature in degrees Celsius
-    float humidity;         // Relative humidity in percentage
-    uint32_t timestamp;     // System uptime in milliseconds
-} __attribute__((packed));
-
-/**
  * @brief Main application entry point
- * 
- * This function initializes the SHT31 sensor and UDP client,
- * then continuously reads sensor data and transmits it via UDP
- * every second to the configured remote server.
- * 
+ *
+ * This function initializes the SensorHandler and UDP client, then continuously
+ * processes sensor data and transmits it via UDP at 1Hz to the configured remote
+ * server. The application uses a clean architecture with SensorHandler managing
+ * all sensor operations and data caching.
+ *
+ * Architecture flow:
+ * SensorHandler.update() -> SensorData (with timestamp) -> UDP transmission
+ *
  * @return int Return code (never reached due to infinite loop)
  */
 int main(void) {
-    // Initialize sensor reader for SHT31 temperature/humidity sensor
-    SHT3xReader my_sensor;
-    
+    // Initialize high-level sensor handler for SHT31 temperature/humidity sensor
+    // SensorHandler encapsulates SHT3xReader and manages SensorData internally
+    SensorHandler my_sensor;
+
     // Initialize UDP client with target server IP and port
     // Target: 192.168.1.37:8888
     UdpClient udp_client("192.168.1.37", 8888);
 
-    LOG_INF("Starting SHT3x sensor with UDP transmission...");
+    LOG_INF("=== SHT31 Sensor UDP Transmitter ===");
+    LOG_INF("Using SensorHandler with integrated SensorData management");
     LOG_INF("Target server: 192.168.1.37:8888");
 
     // Wait for network initialization to complete
     // This ensures Ethernet interface is up and IP is configured
+    LOG_INF("Waiting for network initialization...");
     k_sleep(K_SECONDS(3));
+    LOG_INF("Starting sensor data transmission loop");
 
     // Main application loop - runs continuously
     while (true) {
-        // Attempt to read sensor data
-        if (my_sensor.fetch()) {
-            // Extract temperature and humidity values
-            double temp = my_sensor.getTemperature();
-            double hum = my_sensor.getHumidity();
-
+        // Update sensor readings using SensorHandler
+        // This calls SHT3xReader internally and updates SensorData with timestamp
+        if (my_sensor.update()) {
+            // Get reference to SensorData structure (contains temp, humidity, timestamp)
+            const SensorData& sensor_data = my_sensor.getData();
+            
             // Log sensor readings locally via UART
-            LOG_INF("Temp: %.2f deg, Hum: %.2f %%", temp, hum);
+            // Explicit cast to double to avoid float-to-double promotion warnings
+            LOG_INF("Sensor readings: %.2f deg, %.2f %%", 
+                    (double)sensor_data.temperature, (double)sensor_data.humidity);
 
-            // Prepare sensor data structure for UDP transmission
-            SensorData data;
-            data.temperature = (float)temp;         // Convert to float for network efficiency
-            data.humidity = (float)hum;             // Convert to float for network efficiency
-            data.timestamp = k_uptime_get_32();     // System uptime in milliseconds
-
-            // Transmit sensor data via UDP
-            if (udp_client.send(&data, sizeof(data))) {
-                // Log successful transmission with explicit casts to avoid warnings
-                LOG_INF("UDP sent: %.2f deg, %.2f %% [%u ms]", 
-                        (double)data.temperature, (double)data.humidity, data.timestamp);
+            // Transmit complete SensorData structure via UDP
+            // SensorData is packed and optimized for network transmission
+            if (udp_client.send(&sensor_data, sizeof(sensor_data))) {
+                // Log successful transmission with timestamp
+                // Explicit casts to avoid float-to-double promotion warnings
+                LOG_INF("UDP transmitted: %.2f deg, %.2f %% [%u ms]", 
+                        (double)sensor_data.temperature,
+                        (double)sensor_data.humidity, 
+                        sensor_data.timestamp);
             } else {
                 // Log transmission failure
-                LOG_ERR("Failed to send UDP data");
+                LOG_ERR("UDP transmission failed");
             }
         } else {
             // Log sensor read failure
-            LOG_ERR("Failed to read sensor data");
+            LOG_ERR("Sensor reading failed");
         }
 
         // Wait 1 second before next sensor reading
