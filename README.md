@@ -1,6 +1,6 @@
 # Zephyr SHT31 Sensor UDP Transmitter for STM32 Nucleo-H755ZI-Q
 
-This repository contains a professional Zephyr RTOS application that reads temperature and humidity data from an SHT31 sensor and transmits it via UDP over Ethernet. The project demonstrates modern C++ design patterns, modular architecture, and embedded networking best practices.
+This repository contains a Zephyr RTOS application that reads temperature and humidity data from an SHT31 sensor and transmits it via UDP over Ethernet. The project demonstrates C++ design patterns, modular architecture, and embedded networking best practices.
 
 ## 🌟 Features
 
@@ -12,6 +12,7 @@ This repository contains a professional Zephyr RTOS application that reads tempe
 - **Network statistics** and debugging capabilities
 - **High-precision sensor readings** with efficient network transmission
 - **Static IP configuration** for reliable network deployment
+- **Integrated data management** with timestamp and packed transmission format
 
 ## 🔧 Hardware Requirements
 
@@ -19,33 +20,6 @@ This repository contains a professional Zephyr RTOS application that reads tempe
 - **SHT31 Temperature & Humidity Sensor** (I2C interface)
 - **Ethernet connection** for UDP communication and Telnet access
 - Jumper wires for sensor connections
-
-## 💻 Development Environment
-
-This project is developed and tested on **Linux**. The setup has been verified on:
-
-- **Ubuntu 22.04 LTS** (recommended)
-- Other Linux distributions should work but may require additional package installations
-
-**Note:** While Zephyr supports Windows and macOS, this guide assumes a Linux development environment. For other operating systems, please refer to the [official Zephyr documentation](https://docs.zephyrproject.org/latest/getting_started/index.html).
-
-### Prerequisites
-
-Before getting started, ensure your Linux system has the required packages:
-
-```shell
-# Ubuntu/Debian
-sudo apt update
-sudo apt install git cmake ninja-build gperf ccache dfu-util device-tree-compiler wget \
-    python3-dev python3-pip python3-setuptools python3-tk python3-wheel xz-utils file \
-    make gcc gcc-multilib g++-multilib libsdl2-dev
-
-# For flashing via OpenOCD
-sudo apt install openocd
-
-# For network debugging (optional)
-sudo apt install wireshark telnet minicom
-```
 
 ## 🏗️ Project Architecture
 
@@ -68,7 +42,7 @@ zephyr-sht31-sensor/
 │   │       ├── udp_client.h        # UDP client interface
 │   │       └── udp_client.cpp      # Network transmission implementation
 │   └── src/
-│       └── main.cpp                # Application orchestration and main loop
+│       └── main.cpp                # Application orchestration using SensorHandler
 ├── python_receiver/
 │   └── simple_receiver.py          # Python UDP receiver for testing
 ├── west.yml                        # West manifest for dependencies
@@ -81,47 +55,42 @@ zephyr-sht31-sensor/
 
 - **Separation of Concerns**: Each module has a single, well-defined responsibility
 - **Clean Interfaces**: Header/implementation separation for maintainability
-- **Data Flow Architecture**: `SensorHandler` → `SensorData` → `NetworkPacket` → `UdpClient`
+- **Integrated Data Management**: `SensorHandler` manages `SensorData` with automatic timestamping
 - **Professional Documentation**: Doxygen-style comments throughout
 - **Error Handling**: Comprehensive error checking and logging
 - **Resource Management**: Proper RAII and cleanup patterns
 
-## 🔌 Hardware Connection
-
-Connect the SHT31 sensor to the Nucleo board using the following pin mapping:
-
-| SHT31 Pin | Nucleo Pin | Function | Description |
-|-----------|------------|----------|-------------|
-| VCC       | 3.3V       | Power    | Power supply (3.3V) |
-| GND       | GND        | Ground   | Ground connection |
-| SDA       | PB9        | I2C Data | I2C Data Line (with internal pull-up) |
-| SCL       | PB8        | I2C Clock| I2C Clock Line (with internal pull-up) |
-
-### Wiring Diagram
+### 📊 Data Flow Architecture
 
 ```
-SHT31 Sensor          STM32 Nucleo-H755ZI-Q
-┌─────────────┐       ┌─────────────────────────┐
-│ VCC    ●────┼───────┼─● 3.3V                  │
-│ GND    ●────┼───────┼─● GND                   │
-│ SDA    ●────┼───────┼─● PB9 (I2C1_SDA)       │
-│ SCL    ●────┼───────┼─● PB8 (I2C1_SCL)       │
-└─────────────┘       └─────────────────────────┘
+SHT3xReader (low-level I2C)
+    ↓
+SensorHandler (high-level management)
+    ↓
+SensorData (temp, humidity, timestamp)
+    ↓
+UdpClient (network transmission)
+    ↓
+Remote Server (192.168.1.37:8888)
 ```
 
-**Note:** The device tree overlay configures internal pull-up resistors, so no external pull-ups are required.
+### 🔄 SensorData Structure
 
-## 🌐 Network Configuration
+The application uses a packed data structure for efficient network transmission:
 
-The application uses static IP configuration for reliable deployment:
+```cpp
+struct SensorData {
+    float temperature;   // Temperature in degrees Celsius
+    float humidity;      // Relative humidity in percentage (0-100%)
+    uint32_t timestamp;  // System uptime in milliseconds
+} __attribute__((packed));
+```
 
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| Board IP | 192.168.1.38 | Static IP address of the Nucleo board |
-| Netmask | 255.255.255.0 | Subnet mask |
-| Gateway | 192.168.1.1 | Default gateway |
-| UDP Target | 192.168.1.37:8888 | Target server for sensor data |
-| Telnet Port | 23 | Remote console access |
+**Benefits:**
+- **Automatic timestamping** by SensorHandler
+- **Packed format** for efficient UDP transmission (12 bytes total)
+- **Float precision** optimized for network bandwidth
+- **Integrated management** - no separate data conversion needed
 
 ## 🚀 Getting Started
 
@@ -151,7 +120,7 @@ west packages pip --install
 Build the application with the following command:
 
 ```shell
-west build -b nucleo_h755zi_q/stm32h755xx/m7 zephyr-sht31-sensor/temp_udp_app -d build_temp_udp_app -- -DDTC_OVERLAY_FILE="boards/nucleo_h755zi_q.overlay"
+west build -b nucleo_h755zi_q/stm32h755xx/m7 zephyr-sht31-sensor/temp_udp_app -d build_sht31 -- -DDTC_OVERLAY_FILE="boards/nucleo_h755zi_q.overlay"
 ```
 
 ### Step 3: Flash to Hardware
@@ -159,7 +128,7 @@ west build -b nucleo_h755zi_q/stm32h755xx/m7 zephyr-sht31-sensor/temp_udp_app -d
 Flash the compiled firmware to the Nucleo board:
 
 ```shell
-west flash --runner openocd --build-dir build_temp_udp_app
+west flash --runner openocd --build-dir build_sht31
 ```
 
 ## 📊 Monitoring and Debugging
@@ -177,37 +146,22 @@ Expected output:
 ```
 *** Booting Zephyr OS build v4.2.0 ***
 [00:00:03.021,000] <inf> main: === SHT31 Sensor UDP Transmitter ===
-[00:00:03.027,000] <inf> main: Using SensorHandler with SensorData structure
+[00:00:03.027,000] <inf> main: Using SensorHandler with integrated SensorData management
 [00:00:03.034,000] <inf> main: Target server: 192.168.1.37:8888
 [00:00:06.042,000] <inf> main: Starting sensor data transmission loop
 [00:00:06.049,000] <inf> main: Sensor readings: 23.45 deg, 51.20 %
 [00:00:06.056,000] <inf> main: UDP transmitted: 23.45 deg, 51.20 % [6056 ms]
 ```
 
-### Remote Telnet Console
+### UDP Data Format
 
-Access the system remotely via Telnet for network diagnostics:
+The transmitted UDP packets contain the packed SensorData structure:
 
-```shell
-# Connect to Telnet console
-telnet 192.168.1.38
 ```
-
-Available commands in Telnet console:
-```shell
-nucleo-eth:~$ help               # Show all available commands
-nucleo-eth:~$ net stats          # Network statistics
-nucleo-eth:~$ net conn           # Active connections
-nucleo-eth:~$ net iface          # Network interface info
-nucleo-eth:~$ net ping 192.168.1.37  # Test connectivity
-nucleo-eth:~$ kernel uptime      # System uptime
-nucleo-eth:~$ device list        # Hardware devices
-```
-
-To exit Telnet:
-```shell
-# Press Ctrl+] then type:
-quit
+Bytes 0-3:   Temperature (float, IEEE 754)
+Bytes 4-7:   Humidity (float, IEEE 754)  
+Bytes 8-11:  Timestamp (uint32_t, little-endian)
+Total:       12 bytes per packet
 ```
 
 ### UDP Data Reception
@@ -215,148 +169,112 @@ quit
 Use the included Python receiver to monitor sensor data:
 
 ```shell
-cd zephyr-sht31-sensor/python_receiver
+cd python_receiver
 python3 simple_receiver.py
 ```
 
-## 🔧 Configuration Options
-
-### Application Configuration (`prj.conf`)
-
-Key configuration sections:
-
-```ini
-# Core system
-CONFIG_LOG_DEFAULT_LEVEL=3           # INFO level logging
-CONFIG_CPP=y                         # C++ support
-CONFIG_SENSOR=y                      # Sensor subsystem
-CONFIG_I2C=y                         # I2C bus support
-
-# Networking
-CONFIG_NETWORKING=y                  # Network stack
-CONFIG_NET_UDP=y                     # UDP protocol
-CONFIG_NET_CONFIG_MY_IPV4_ADDR="192.168.1.38"  # Static IP
-
-# Shell and monitoring
-CONFIG_SHELL_BACKEND_TELNET=y        # Telnet console
-CONFIG_NET_STATISTICS=y              # Network statistics
+Expected receiver output:
+```
+Listening for sensor data on port 8888...
+Received from 192.168.1.38: Temp=23.45°C, Humidity=51.20%, Timestamp=6056ms
+Received from 192.168.1.38: Temp=23.46°C, Humidity=51.18%, Timestamp=7056ms
 ```
 
-### Device Tree Overlay (`boards/nucleo_h755zi_q.overlay`)
+## 🔧 Core Components
 
-Hardware configuration for I2C and sensor:
+### SensorHandler Class
 
-```dts
-&i2c1 {
-    status = "okay";
-    sht3xd@44 {
-        compatible = "sensirion,sht3xd";
-        reg = <0x44>;
-    };
-};
+The `SensorHandler` provides high-level sensor management:
+
+```cpp
+SensorHandler sensor;
+
+// Read sensor and update internal SensorData
+if (sensor.update()) {
+    const SensorData& data = sensor.getData();
+    printf("Temp: %.2f°C, Hum: %.2f%%\n", data.temperature, data.humidity);
+}
 ```
+
+**Key Features:**
+- Encapsulates low-level `SHT3xReader`
+- Automatic timestamp generation
+- Error handling and data caching
+- Clean, simple interface
+
+### UdpClient Class
+
+The `UdpClient` handles network transmission:
+
+```cpp
+UdpClient client("192.168.1.37", 8888);
+
+// Send SensorData directly
+if (client.send(&sensor_data, sizeof(sensor_data))) {
+    printf("Data transmitted successfully\n");
+}
+```
+
+**Key Features:**
+- BSD socket API wrapper
+- Automatic server address configuration
+- Error handling and logging
+- Efficient binary data transmission
 
 ## 🧪 Testing and Validation
 
-### 1. Sensor Functionality Test
+### 1. Sensor Data Validation
 
 ```shell
-# Via Telnet console
+# Via Telnet console - check device status
 nucleo-eth:~$ device list
 # Should show SHT31 sensor as ready
+
+# Monitor logs for sensor readings
+# Temperature should be reasonable (15-40°C)
+# Humidity should be 0-100%
 ```
 
-### 2. Network Connectivity Test
-
-```shell
-# From development machine
-ping 192.168.1.38
-
-# Via Telnet console
-nucleo-eth:~$ net ping 192.168.1.37
-```
-
-### 3. UDP Data Transmission Test
+### 2. Network Data Validation
 
 ```shell
 # Start Python receiver
 python3 python_receiver/simple_receiver.py
 
-# Should receive sensor data every second
+# Verify data format and timing
+# Packets should arrive every ~1 second
+# Data should be consistent and reasonable
 ```
 
-## 🐛 Troubleshooting
+### 3. Timestamp Validation
 
-### Sensor Issues
-
-**SHT31 not detected:**
-- Verify wiring connections (VCC=3.3V, GND, SDA=PB9, SCL=PB8)
-- Check I2C bus status: `nucleo-eth:~$ device list`
-- Ensure sensor has proper power supply
-
-**Sensor read failures:**
-- Check I2C timing in device tree overlay
-- Verify sensor is not damaged (try different sensor)
-- Monitor logs for specific I2C error codes
-
-### Network Issues
-
-**No network connectivity:**
-- Verify Ethernet cable connection
-- Check DHCP/static IP configuration in `prj.conf`
-- Test with: `nucleo-eth:~$ net iface`
-
-**UDP transmission failures:**
-- Verify target server is reachable: `nucleo-eth:~$ net ping 192.168.1.37`
-- Check firewall settings on target machine
-- Monitor network with Wireshark for UDP packets
-
-**Telnet console not accessible:**
-- Verify IP address configuration
-- Check if port 23 is blocked by firewall
-- Test with: `telnet 192.168.1.38`
-
-### Build Issues
-
-**Compilation errors:**
 ```shell
-# Clean rebuild
-rm -rf build_sht31
-west build -b nucleo_h755zi_q/stm32h755xx/m7 zephyr-sht31-sensor/temp_udp_app -d build_sht31
-```
-
-**Dependencies missing:**
-```shell
-# Reinstall dependencies
-west packages pip --install
+# Check timestamp progression in logs
+# Timestamp should increase by ~1000ms each reading
+# Timestamp = system uptime in milliseconds
 ```
 
 ## 📈 Performance Metrics
 
-- **Sampling Rate**: 1 Hz (configurable)
+- **Sampling Rate**: 1 Hz (1 second intervals)
+- **Data Packet Size**: 12 bytes (temperature + humidity + timestamp)
 - **Network Latency**: < 10ms (local network)
 - **Memory Usage**: ~50KB RAM, ~200KB Flash
 - **Power Consumption**: ~200mA @ 3.3V (with Ethernet active)
 - **Temperature Accuracy**: ±0.3°C (sensor specification)
 - **Humidity Accuracy**: ±2% RH (sensor specification)
+- **Timestamp Resolution**: 1ms (system tick dependent)
 
 ## 🔮 Future Enhancements
 
-- **Multiple sensor support** (SHT30, SHT35)
+- **Multiple sensor support** with sensor array management
 - **JSON data format** for better interoperability
 - **MQTT protocol** for IoT cloud integration
-- **Web server** for browser-based monitoring
-- **Data logging** to SD card
+- **Data buffering** for unreliable network conditions
+- **Configuration via Telnet** for runtime parameter changes
+- **SD card logging** for local data storage
 - **OTA firmware updates** via Ethernet
 
 ## 📜 License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📞 Support
-
-For questions and support, please open an issue in the GitHub repository.
