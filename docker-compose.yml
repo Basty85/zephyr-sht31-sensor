@@ -1,0 +1,19 @@
+services:
+  zephyr-stm32:
+    container_name: zephyr-stm32
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: basti/zephyr-stm32:latest
+    volumes:
+      - ./temp_udp_app:/workspace/zephyr-sht31-sensor/temp_udp_app
+    working_dir: /workspace
+    #command: ["docker/entrypoint.sh"]
+    network_mode: "host"
+    privileged: true
+    tty: true
+    stdin_open: true
+
+networks:
+  default:
+    driver: bridge

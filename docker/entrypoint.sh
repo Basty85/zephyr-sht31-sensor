@@ -1,10 +1,18 @@
-#!/bin/sh
+#!/bin/bash
+set -e
 
-# Navigate to the application directory
-cd /app/temp_udp_app
+# Activate Python virtual environment
+source /opt/venv/bin/activate
 
-# Execute the build script
-./scripts/build.sh
+# Source Zephyr environment
+source /workspace/zephyr/zephyr-env.sh
 
-# Keep the container running
-tail -f /dev/null
+# Optional: direkt in Workspace gehen
+cd /workspace/zephyr-sht31-sensor
+
+# Falls ein Befehl übergeben wird, ausführen, sonst Bash
+if [ $# -eq 0 ]; then
+    exec bash
+else
+    exec "$@"
+fi
