@@ -80,9 +80,6 @@ RUN west init -l zephyr-sht31-sensor && \
     west update --narrow -o=--depth=1 && \
     west packages pip --install
 
-# Make scripts executable
-RUN chmod +x /workspace/zephyr-sht31-sensor/temp_udp_app/scripts/*.sh
-
 # Zephyr base env var
 ENV ZEPHYR_BASE=/workspace/zephyr
 

@@ -1,4 +1,5 @@
 #!/bin/sh
+cd /workspace/zephyr-sht31-sensor/temp_udp_app
 
 # Flash the compiled firmware to the STM32 Nucleo-H755ZI-Q board
 

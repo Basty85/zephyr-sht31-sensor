@@ -118,16 +118,16 @@ The easiest way to get started is using the provided Docker development environm
 2. **Start Development Environment**
    ```shell
    cd zephyr-sht31-sensor
-   docker compose run --rm zephyr
+   docker compose run --rm zephyr-stm32
    ```
 
 3. **Build and Flash** (inside the container)
    ```shell
    # Build the application
-   ./scripts/build.sh
+   ./zephyr-sht31-sensor/temp_udp_app/scripts/build.sh
    
    # Flash to hardware (requires USB device access)
-   ./scripts/flash.sh
+   ./zephyr-sht31-sensor/temp_udp_app/scripts/flash.sh
    ```
 
 #### Docker Development Benefits
@@ -137,24 +137,6 @@ The easiest way to get started is using the provided Docker development environm
 - **Pre-configured Zephyr SDK** and dependencies
 - **Reproducible builds** for CI/CD integration
 - **Isolated environment** that doesn't affect your host system
-
-#### USB Device Access for Flashing
-
-To flash the firmware from within Docker, you need to provide access to the USB device:
-
-**Linux:**
-```shell
-docker compose run --rm --device=/dev/ttyACM0 zephyr ./scripts/flash.sh
-```
-
-**Alternative: Manual Docker Run**
-```shell
-docker build -t zephyr-sht31-dev -f docker/Dockerfile .
-docker run --rm -it \
-  -v $PWD:/workspace \
-  --device=/dev/ttyACM0 \
-  zephyr-sht31-dev ./scripts/flash.sh
-```
 
 ### Option 2: Manual Environment Setup
 
@@ -190,6 +172,8 @@ west sdk install
 Build the application with the following command:
 
 ```shell
+cd my_zephyr_workspace
+source .venv/bin/activate
 west build -b nucleo_h755zi_q/stm32h755xx/m7 zephyr-sht31-sensor/temp_udp_app -d build_sht31 -- -DDTC_OVERLAY_FILE="boards/nucleo_h755zi_q.overlay"
 ```
 
@@ -217,13 +201,15 @@ Inside the Docker container, use these convenience scripts:
 
 ```shell
 # Build the application
-./scripts/build.sh
+cd my_zephyr_workspace
+./zephyr-sht31-sensor/temp_udp_app/scripts/build.sh
 
 # Flash to connected hardware
-./scripts/flash.sh
+./zephyr-sht31-sensor/temp_udp_app/scripts/flash.sh
 
 # Interactive shell for development
-docker compose run --rm zephyr bash
+cd zephy-sht31-sensor
+docker compose run --rm zephyr-stm32 bash
 ```
 
 ### Docker Compose Services
@@ -263,22 +249,6 @@ Bytes 0-3:   Temperature (float, IEEE 754)
 Bytes 4-7:   Humidity (float, IEEE 754)  
 Bytes 8-11:  Timestamp (uint32_t, little-endian)
 Total:       12 bytes per packet
-```
-
-### UDP Data Reception
-
-Use the included Python receiver to monitor sensor data:
-
-```shell
-cd python_receiver
-python3 simple_receiver.py
-```
-
-Expected receiver output:
-```
-Listening for sensor data on port 8888...
-Received from 192.168.1.38: Temp=23.45°C, Humidity=51.20%, Timestamp=6056ms
-Received from 192.168.1.38: Temp=23.46°C, Humidity=51.18%, Timestamp=7056ms
 ```
 
 ## 🔧 Core Components
@@ -375,7 +345,3 @@ python3 python_receiver/simple_receiver.py
 - **Configuration via Telnet** for runtime parameter changes
 - **SD card logging** for local data storage
 - **OTA firmware updates** via Ethernet
-
-## 📜 License
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
