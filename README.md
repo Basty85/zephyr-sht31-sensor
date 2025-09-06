@@ -13,6 +13,7 @@ This repository contains a Zephyr RTOS application that reads temperature and hu
 - **High-precision sensor readings** with efficient network transmission
 - **Static IP configuration** for reliable network deployment
 - **Integrated data management** with timestamp and packed transmission format
+- **Docker development environment** for consistent cross-platform builds
 
 ## 🔧 Hardware Requirements
 
@@ -43,8 +44,16 @@ zephyr-sht31-sensor/
 │   │       └── udp_client.cpp      # Network transmission implementation
 │   └── src/
 │       └── main.cpp                # Application orchestration using SensorHandler
+├── docker/
+│   ├── Dockerfile                  # Docker development environment
+│   ├── entrypoint.sh               # Container initialization script
+│   └── west-stm32.yml              # West workspace configuration
+├── scripts/
+│   ├── build.sh                    # Automated build script
+│   └── flash.sh                    # Automated flash script
 ├── python_receiver/
 │   └── simple_receiver.py          # Python UDP receiver for testing
+├── docker-compose.yml              # Docker Compose configuration
 ├── west.yml                        # West manifest for dependencies
 ├── CMakeLists.txt
 ├── LICENSE
@@ -94,7 +103,64 @@ struct SensorData {
 
 ## 🚀 Getting Started
 
-### Step 1: Environment Setup
+You can set up the development environment either using Docker (recommended) or manually.
+
+### Option 1: Docker Development Environment (Recommended)
+
+The easiest way to get started is using the provided Docker development environment, which provides a consistent build environment across all platforms.
+
+#### Quick Start with Docker
+
+1. **Prerequisites**
+   - Install Docker and Docker Compose on your system
+   - Clone this repository
+
+2. **Start Development Environment**
+   ```shell
+   cd zephyr-sht31-sensor
+   docker compose run --rm zephyr
+   ```
+
+3. **Build and Flash** (inside the container)
+   ```shell
+   # Build the application
+   ./scripts/build.sh
+   
+   # Flash to hardware (requires USB device access)
+   ./scripts/flash.sh
+   ```
+
+#### Docker Development Benefits
+
+- **No local toolchain installation required**
+- **Consistent build environment** across Windows, macOS, and Linux
+- **Pre-configured Zephyr SDK** and dependencies
+- **Reproducible builds** for CI/CD integration
+- **Isolated environment** that doesn't affect your host system
+
+#### USB Device Access for Flashing
+
+To flash the firmware from within Docker, you need to provide access to the USB device:
+
+**Linux:**
+```shell
+docker compose run --rm --device=/dev/ttyACM0 zephyr ./scripts/flash.sh
+```
+
+**Alternative: Manual Docker Run**
+```shell
+docker build -t zephyr-sht31-dev -f docker/Dockerfile .
+docker run --rm -it \
+  -v $PWD:/workspace \
+  --device=/dev/ttyACM0 \
+  zephyr-sht31-dev ./scripts/flash.sh
+```
+
+### Option 2: Manual Environment Setup
+
+If you prefer to set up the environment manually:
+
+#### Step 1: Environment Setup
 
 Create a workspace and clone the repository:
 
@@ -119,7 +185,7 @@ cd zephyr
 west sdk install
 ```
 
-### Step 2: Build Application
+#### Step 2: Build Application
 
 Build the application with the following command:
 
@@ -127,13 +193,44 @@ Build the application with the following command:
 west build -b nucleo_h755zi_q/stm32h755xx/m7 zephyr-sht31-sensor/temp_udp_app -d build_sht31 -- -DDTC_OVERLAY_FILE="boards/nucleo_h755zi_q.overlay"
 ```
 
-### Step 3: Flash to Hardware
+#### Step 3: Flash to Hardware
 
 Flash the compiled firmware to the Nucleo board:
 
 ```shell
 west flash --runner openocd --build-dir build_sht31
 ```
+
+## 🛳️ Docker Environment Details
+
+### Docker Configuration
+
+The Docker environment includes:
+- **Zephyr SDK** with ARM Cortex-M toolchain
+- **West tool** and Python dependencies
+- **OpenOCD** for flashing and debugging
+- **Build scripts** for easy compilation and deployment
+
+### Available Scripts
+
+Inside the Docker container, use these convenience scripts:
+
+```shell
+# Build the application
+./scripts/build.sh
+
+# Flash to connected hardware
+./scripts/flash.sh
+
+# Interactive shell for development
+docker compose run --rm zephyr bash
+```
+
+### Docker Compose Services
+
+- **zephyr**: Main development service with full toolchain
+- **Volume mounting**: Your project directory is mounted at `/workspace`
+- **Environment variables**: Pre-configured for Zephyr development
 
 ## 📊 Monitoring and Debugging
 
