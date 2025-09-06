@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    image: basti/zephyr-stm32:latest
+    image: zephyr-stm32:latest
     volumes:
       - ./temp_udp_app:/workspace/zephyr-sht31-sensor/temp_udp_app
     working_dir: /workspace
