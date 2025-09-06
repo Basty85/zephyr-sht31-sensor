@@ -113,6 +113,10 @@ pip install west
 west init -l zephyr-sht31-sensor
 west update
 west packages pip --install
+
+# Install Zephyr SDK
+cd zephyr
+west sdk install
 ```
 
 ### Step 2: Build Application
