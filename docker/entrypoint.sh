@@ -7,7 +7,6 @@ source /opt/venv/bin/activate
 # Source Zephyr environment
 source /workspace/zephyr/zephyr-env.sh
 
-# Optional: direkt in Workspace gehen
 cd /workspace
 
 # Make scripts executable
